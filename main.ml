@@ -315,22 +315,22 @@ my notes: 3 non-terminals in cmd: comes out of type Imp.cmd
    of an Imp program as input, and produces its list of integers as output. *)
 
 let parse : string -> cmd =
-  fun str -> raise NotImplemented 
+  fun str -> match str with
+  |  
 
 let impEval : string -> int list =
   fun str -> str |> parse |> ceval 
 
 (* At this point, we will test your implementation with: *)
-(*
- let _ =
+
+(* let _ = 
   let cs = "x = 5;
             while (0 < x) do
               output x;
               x = x - 1;
               output y;
               y = y + 1
-            done" in
-  assert (impEval cs = [5; 0; 4; 1; 3; 2; 2; 3; 1; 4]) *)
+            done" in assert (impEval cs = [5; 0; 4; 1; 3; 2; 2; 3; 1; 4]) *)
 
 (**************************************************************************************************)
 (* Question 4: Identifying Ambiguous Grammers (5 + 5 points)
@@ -351,6 +351,19 @@ let impEval : string -> int list =
        Is the grammar of commands unambiguous? If yes, then explain. If not, present a command which
        can be parsed in two different ways.
 
+       The above language is unambiguous. We will prove this via induction.
+       First, note that any terminal symbol has a unique parse tree. Now, assume
+       that for any command in this language of length n - there is only one valid
+       parse tree. Suppose now we have a command of length n+1. If this command is 
+       "skip" it clearly has a unique parse tree. If the command is of the form
+       cmd1 ; cmd2 then the parse tree of the new command is the parse tree of cmd1
+       followed by cmd2. As each of cmd1 and cmd2 were unambiguous so is command. 
+       Similarly, any command of the form If bexp then cmd1 else cmd2 Can be constructed
+       by making a parse tree where cmd1 and cmd2 are the 'children' of a node
+       bexp, with one path following to cmd1 and the other to cmd2. Since cmd1 and cmd2
+       are unambiguous, the tree created by making them the 'children' of a root
+       given by bexp is unambiguous. Thus, by induction the the language is unambiguous.
+
    4b. A language of (only) conditionals, Version II
 
          cmd ::= "skip"
@@ -363,8 +376,28 @@ let impEval : string -> int list =
        Is the grammar of commands unambiguous? If yes, then explain. If not, present a command which
        can be parsed in two different ways.
 
+       grammar two is ambiguous. This is because it doesn't provide a clear rule
+       for how to parse sequential expressions. 
+       Given the following: if true then skip else skip ; skip
+       we have two potential parsings. One possible parse treats 'if true then skip else skip'
+       as a single command and '; skip' as another. In this case regardless of 
+       truth we will first skip, and a second skip is done after ';'. The 
+       second possible parse is 'if true then skip' else 'skip ; skip' which 
+       if true has one skip, and if false has two skips sequentially. As the first
+       parsing has two skips sequentially in either case, these differ
+       in the case of 'true' thus they have different parse trees and
+       the grammar is ambiguous. 
+       
+       As mentioned below, the "fi" which ends if-else blocks is the key that
+       differentiates the grammars - making one ambiguous and the other not. 
+
+       
+
+
        Note that the only difference between the two grammars in Questions 4a and 4b is the keyword
        "fi" in Version I which delineates the end of a conditional statement. *)
+
+      
 
 (**************************************************************************************************)
 (* Question 5: Understanding Regular Expressions (5 * 2 points)
@@ -374,36 +407,46 @@ let impEval : string -> int list =
    you explain why not?
 
    5a. a* . b* and (a | b)* 
-   As the symbol . matches any character except line break, the expression given
-   by "Z" (without the quotes) matches the former but not the latter
+   As the symbol string "ba" will match the second sequence
+   but not the first, they are not the same. 
 
    5b. a* . ( b* | c* ) and ( a* . b* ) | ( a* . c* )
-   There is no such string that only matches one. Consider the left hand side in words. It gives the expression
-   "Zero or more copies of 'a' followed by any character except line break followed
-   by EITHER - zero or more copies of 'b' or zero or more copies of 'c'. The 
-   EITHER is not exclusive so it could be a sequence of 'b's and 'c's." Now, clearly
-   for a string to match either side it must start with zero or more 'a'. It
-   can then be followed by any non-linebreak character. If, after the 'a' and the
-   extra character given by '.' the character has no more symbols, it clearly
-   matches both the left and right regex. If it consists of zero or more 'a' followed by
-   any non-linebreak character and a string of 'b' then it matches the left hand side
-   and for the right hand side, it matches (a*. b* ) and therefore matches the
-   right hand side. Similarly zero or more 'a' followed by non-linebreak character
-   and a string of 'c' matches the left hand side and the right hand side. The case
-   where | is not exclusive matches expressions on the left hand side with 'a' folowed
-   by a non-linebreak character followed by a number of 'b' and a number of 'c'. 
-   This also satisfies the right hand side by matching the zero or more 'a' from the portion
-   to the left of the '|' then the non-linebreak character also to the left of 
-   '|' then the same number of 'b' from this side of the '|' as well, and then
-    to the right of the '|' we use zero copies of 'a' and let '.' be 'c' and then follow
-   up with a number of 'c' equal to the left regex's number of 'c' - 1. This gives
-   the total number of 'c' match and in order as well.  
+   Assuming the | is a non-exclusive or: then 'aba' matches 
+   the second pattern but not the first. 
+    
 
-   5c. a* and (a | aa)*
+   5c. a* and (a | aa)* There is no string that can be produced by one of these
+   regular expressions and not the other. Both can produce the empty string. 
+   If a non-empty string is produced, a* produces a sequence of 'a' with any
+   finite length (N). Clearly the same can be produced on the right by "choosing" 
+   'a' N times. If, on the right hand production rule someone chooses 'aa'
+   M times, then that can be produced via the left hand rule by picking 'a'
+   2M times. Thus any string created by one can be created by the other. 
 
    5d. a* . a* and a*
+   Assuming '.' means concatenation as stated on Piazza
+   and not 'wildcard' these two regular expressions are the same
+   as each regular expression can generate either the 
+   empty string or a string of N 'a' for any natural
+   number N.
 
-   5e. a* and ( a* )* *)
+   5e. a* and ( a* )* 
+   
+   The answer here depends on whether the empty string
+   "exists" inside a string, in other words is the sequence:
+   'a' {} 'b' {} 'c' the same as 'a' 'b' 'c' or not. If the
+   empty strings don't "collapse" then these regular expressions produce different strings. 
+   a* either produces an emoty string, or any finite number of 'a's. The regex
+   on the right can produce those, and it can also produce a string that 
+   is a sequence of 'a' interspersed with the empty-string. For example,
+   the right hand regular expression can produce 'a' '' 'a' '' '' 'a' which the left
+   hand cannot.  
+   On the other hand, if an internal {} "collapses to nothing"
+   then both regular expressions generate either an empty string
+   or N 'a' for any natural number N, and thus these expressions are the same. 
+    
+   
+   *)
 
 (**************************************************************************************************)
 (* Question 6: Matching Regular Expressions in Linear Time (5 + 5 + 5 points)
@@ -425,21 +468,55 @@ let list_of_string : string -> char list =
 
 let (* rec? *) matchesHiStar : string -> bool =
   fun str ->
-    raise NotImplemented
+    let rec check chars =
+      match chars with
+      | 'H' :: 'i' :: rest -> check rest  (* Consume "Hi" *)
+      | 'i' :: rest -> check rest         (* Consume 'i' *)
+      | [] -> true                            (* Matched successfully with the entire string *)
+      | _ -> false                            (* Any other character means it's not a match *)
+    in
+    match list_of_string str with
+    | 'H' :: 'i' :: rest -> check rest  (* Start with "Hi" *)
+    | [] -> true                            (* Empty string is considered a match *)
+    | _ -> false 
 
 (* - Write a program that determines whether a given string matches the pattern
      ("Hi" | "Hello")*: *)
 
 let (* rec? *) matchesHiOrHelloStar : string -> bool =
   fun str ->
-    raise NotImplemented
+    let rec checkHello chars =
+      match chars with 
+      | 'H' :: 'e' ::'l' ::'l'::'o':: rest -> checkHello rest
+      | 'H' :: 'i' :: rest -> checkHello rest
+      | [] -> true
+      | _ -> false
+    in
+    match list_of_string str with
+    | 'H' :: 'i' :: rest -> checkHello rest
+    | 'H' :: 'e' ::'l' ::'l'::'o':: rest -> checkHello rest
+    | [] -> true
+    | _ -> false
 
 (* - Write a program that determines whether a given string matches the pattern
      ("Hi" | "Hello")* . "Okay"*: *)
 
-let (* rec? *) matchesHiOrHelloStarThenOkayStar : string -> bool =
-  fun str ->
-    raise NotImplemented
+     let matchesHiOrHelloOkayStar : string -> bool =
+      fun str ->
+        let rec checkOnlyOkay chars = 
+          | 'O' :: 'k' :: 'a' :: 'y' :: rest -> checkHiHelloOkay rest
+          | [] -> true
+          | _ -> false
+        in
+        let rec checkHiHelloOkay chars =
+          match chars with
+          | 'H' :: 'i' :: rest -> checkHiHelloOkay rest
+          | 'H' :: 'e' :: 'l' :: 'l' :: 'o' :: rest -> checkHiHelloOkay rest
+          | 'O' :: 'k' :: 'a' :: 'y' :: rest -> checkOnlyOkay rest
+          | [] -> true
+          | _ -> false
+        in
+        checkHiHelloOkay (list_of_string str)
 
 (**************************************************************************************************)
 (* Question 7: A Simple Type Checker (15 points)
@@ -447,7 +524,8 @@ let (* rec? *) matchesHiOrHelloStarThenOkayStar : string -> bool =
    We define here the abstract syntax of a simple expression language. Observe that we have
    eliminated the distinction between arithmetic and Boolean expressions, and variables may hold
    values of either type: *)
-
+(* The ending to this parenthesis star is RIGHT
+   before question 8!!!!
 type expr =
   | Var of string                    (* Variables *)
   | IntLit of int                    (* Integer literals *)
@@ -589,6 +667,8 @@ let get_type_test (env : value StringMap.t) (e : expr) =
   | (Some BoolType, Some (BoolVal _)) -> assert true
   | (Some BoolType, _) -> assert false
   | _ -> assert true
+
+*)
 
 (* Disclaimer: The above tests are not exhaustive! Some of you may notice that defining:
 

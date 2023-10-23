@@ -12,27 +12,40 @@
 
 let intPattern = ['0'-'9']+
 let white = [' ' '\t']+
-let vars = ['a'-'z']+
+let letters = ['a'-'z' 'A'-'Z']
+let unserscore = '_'
+let var = letters+
 let newline = '\n'
+
+(*Other "var" below was var open brack read lexbuf close bracket *)
 
 rule read =
   parse
   | white { read lexbuf }
   | newline { next_line lexbuf; read lexbuf }
   | intPattern { INT(int_of_string(Lexing.lexeme lexbuf)) }
-  | vars { read lexbuf }
+  | var  {VAR(Lexing.lexeme lexbuf) }
   | '+' { PLUS }
   | '-' { MINUS }
   | '<' { LT }
-  | '=' { EQ }
+  | '=' { ASGN }
+  | "=" { EQ }
+  | ';' { SEQ }
   | "<=" { LEQ }
   | "&&" { AND }
   | "||" { OR }
   | '!' { NOT }
+  | "true" { TRUE }
+  | "false" { FALSE }
   | "output" { OUTPUT }
   | "while" { WHILE }
+  | "do" { DO }
+  | "done" { DONE }
   | "skip" { SKIP }
-  | "seq" { SEQ }
+  | "if" { IF }
+  | "then" { THEN }
+  | "else" { ELSE }
+  | "fi" { FI }
   | '(' { LPAREN }
   | ')' { RPAREN }
   | eof { EOF }

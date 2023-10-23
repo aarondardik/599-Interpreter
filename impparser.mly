@@ -12,15 +12,19 @@
 %token AND
 %token OR
 %token NOT
+%token TRUE
+%token FALSE 
 %token OUTPUT
 %token SKIP
 %token SEQ
 %token IF 
 %token THEN
 %token ELSE
+%token FI
 %token WHILE 
 %token DO
 %token DONE
+%token ASGN
 
 
 %token <int> INT
@@ -31,47 +35,73 @@
 %%
 
 prog:
-  | e = cmd; EOF { e }
+  | e = cmd1; EOF { e }
   ;
 
+(* Initially on the EQ command I had e1 = VAR...experimenting with change *)
+
+cmd1:
+  | e = cmd { e }
+  | e1 = cmd1; SEQ; e2 = cmd { Imp.Seq(e1, e2) }
+  ;
 
 cmd:
-  | OUTPUT; e = expr1 { Imp.Output(e) }
+  | OUTPUT; e = aexp { Imp.Output(e) }
   | SKIP; {Imp.Skip}
-  | e1 = cmd; SEQ; e2 = cmd { Imp.Seq(e1, e2) } 
-  | e1 = VAR; EQ; e2 = expr1 { Imp.Asgn(e1, e2) }
-  | IF; e1 = expr2; THEN; e2 = cmd; ELSE; e3 = cmd {Imp.IfElse(e1, e2, e3)}
-  | WHILE; e1 = expr2; DO; e2 = cmd; DONE { Imp.While(e1, e2) }
+  | e1 = VAR; ASGN; e2 = aexp { Imp.Asgn(e1, e2) }
+  | IF; e1 = bexp3; THEN; e2 = cmd; ELSE; e3 = cmd; FI {Imp.IfElse(e1, e2, e3)}
+  | WHILE; e1 = bexp3; DO; e2 = cmd; DONE { Imp.While(e1, e2) }
   | LPAREN; e = cmd; RPAREN; { e }
   ;
 
-expr1:
-  | e = expr01 { e } 
-  | el = expr01; PLUS; er = expr01 { Imp.Plus(el, er) }
-  | el = expr01; MINUS; er = expr01 { Imp.Minus(el, er) }
+aexp:
+  | e = expr0 { e } 
+  | el = aexp; PLUS; er = expr0 { Imp.Plus(el, er) }
+  | el = aexp; MINUS; er = expr0 { Imp.Minus(el, er) }
   ;
 
-expr2:
-  | e = expr02 {e}
-  | e1 = expr01; LT; er = expr01 {Imp.Lt (e1, er)}
-  | e1 = expr01; LEQ; er = expr01 {Imp.Leq (e1, er)}
-  | e1 = expr01; EQ; er = expr01 {Imp.Eq (e1, er)}  
-  | e1 = expr02; AND; er = expr02 {Imp.And (e1, er)}
-  | e1 = expr02; OR; er = expr02 {Imp.Or (e1, er)}
-  | e = expr02; NOT; {Imp.Not (e)}
 
 
-expr01:
+
+expr0:
   | s = INT { Imp.Int s }
-  | s = VAR { Imp.Var s}
-  | LPAREN; e = expr1; RPAREN { e }
+  | s = VAR { Imp.Var s }
+  | LPAREN; e = aexp; RPAREN { e }
+  ;
+
+(* above we had s = INT { Imp.Int s } ...we are trying something else. change 
+back if it doesnt work *)
+
+bexp3:
+  | e = bexp2 { e }
+  | e1 = bexp3; OR; e2 = bexp2 { Imp.Or(e1, e2) }
+  ;
+
+bexp2:
+  | e1 = bexp2; AND; e2 = bexp1 { Imp.And(e1, e2) }
+  | e = bexp1 { e }
+  ;
+
+bexp1:
+  | e = bexp0 { e }
+  | NOT; e = bexp0 { Imp.Not(e) }
+  ;
+
+bexp0:
+  | e = bexp { e }
+  | e1 = aexp; LT; er = aexp {Imp.Lt (e1, er)}
+  | e1 = aexp; LEQ; er = aexp {Imp.Leq (e1, er)}
+  | e1 = aexp; EQ; er = aexp {Imp.Eq (e1, er)}  
   ;
 
 
-expr02:
-  | s = BOOL { Imp.Bool s}
-  | LPAREN; e = expr2; RPAREN { e }
+
+bexp:
+  | s = BOOL { Imp.Bool s }
+  | LPAREN; e = bexp; RPAREN { e }
   ;
+
+
 
 
 
